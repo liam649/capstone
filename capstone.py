@@ -16,10 +16,11 @@ portfolio=[]
 #portfolio.append(stocks)
 
 def generatestockprice():
-    
     for stock in stocks:
-        price=random.randint(1,1000)
-        stock[1]=price
+        change = random.randint(-5, 5)
+        stock[1] += change
+        if stock[1] < 1:
+            stock[1] = 1
 
 def display_stocks():
     print("\n--- MARKET ---")
@@ -30,18 +31,24 @@ def display_stocks():
     if not portfolio:
         print("  (empty)")
     else:
-        for stock in portfolio:
-            status = " [HELD]" if len(stock)>2 and stock[2] else ""
-            print(f"  {stock[0]:<6} bought @ ${stock[1]}{status}")
+        for pstock in portfolio:
+            symbol = pstock[0]
+            buy_price = pstock[1]
+            status = " [HELD]" if len(pstock)>2 and pstock[2] else ""
+            
+            for market_stock in stocks:
+                if market_stock[0] == symbol:
+                    current_price = market_stock[1]
+                    profit = current_price - buy_price
+                    profit_str = f"+${profit}" if profit >= 0 else f"-${abs(profit)}"
+                    print(f"  {symbol:<6} bought @ ${buy_price} | current ${current_price} | {profit_str}{status}")
+                    break
         
        
    
 def buy(balance):
-    # `uinput` is a variable that stores the user input for the stock symbol that the user wants to
-    # buy, sell, or hold. It is used to identify the stock selected by the user and perform the
-    # corresponding action based on the input provided by the user.
     uinput=input('enter stock you want to buy:').upper()
-    if uinput in stocks:
+    if any(stock[0] == uinput for stock in stocks):
         print('stock found')
     else:
         print('stock not found press enter')
@@ -50,36 +57,33 @@ def buy(balance):
             if balance>= stock[1]:
                 balance-=stock[1]
                 portfolio.append(stock.copy())
+                if len(portfolio[-1]) == 2:
+                    portfolio[-1].append(False)
                 print (f"you bought {uinput} at ${stock[1]}")
-               
                 print(f"balance: ${balance}")
+            else:
+                print("Not enough money")
             return balance
-            
-            print("Not enough money")
-            
     
 
 
 
 def sell(balance):
     uinput3=input('enter stock you want to sell:').upper()
-    if uinput3 in portfolio:
-        print('stock found')
-    else:
-        print('stock not found')
-    for stock in stocks:
-        print(stock[0])
-        print(uinput3)
-        if stock[0]==uinput3:
-            balance+=stock[1]
-            portfolio.remove(stock)
-            print(f"you sold {uinput3} at ${stock[1]}")
-            print(f"balance: ${balance}")
-            return
-        return balance
-        
+    for pstock in portfolio:
+        if pstock[0]==uinput3:
+            if len(pstock) > 2 and pstock[2]:
+                print(f"This stock is HELD and cannot be sold.")
+                return balance
+            
+            for stock in stocks:
+                if stock[0]==uinput3:
+                    balance+=stock[1]
+                    portfolio.remove(pstock)
+                    print(f"you sold {uinput3} at ${stock[1]}")
+                    print(f"balance: ${balance}")
+                    return balance
     print("stock not found")
-       # elif portfolio.append(stock):
 
 def hold():
     """Toggle hold on a stock so it can't be accidentally sold."""
@@ -91,6 +95,18 @@ def hold():
             print(f"{uinput} is now {status}.")
             return
     print("Stock not found in portfolio.")
+
+def networth():
+    """Calculate total net worth: balance + all portfolio holdings at current price."""
+    total = balance
+    for pstock in portfolio:
+        symbol = pstock[0]
+        for market_stock in stocks:
+            if market_stock[0] == symbol:
+                total += market_stock[1]
+                break
+    return total
+
            
 
 
@@ -100,6 +116,7 @@ if __name__ == '__main__':
         display_stocks()
         
         print(f"\nBalance: ${balance}")
+        print(f"Net Worth: ${networth()}")
         print("\nOptions: buy / sell / hold / quit")
         action = input("Action: ").lower()
 
@@ -111,6 +128,7 @@ if __name__ == '__main__':
             hold()
         elif action == "quit":
             print(f"Final balance: ${balance}")
+            print(f"Final net worth: ${networth()}")
             break
         else:
             print("Invalid option.")
